@@ -1,6 +1,34 @@
 import {BrowserWindow, shell} from 'electron';
 import * as path from "path";
 
+function createWindow(url: string) {
+    const window = new BrowserWindow({
+        title: 'Gmail',
+        icon: path.join(Main.application.getAppPath(), 'icons/icon.png')
+    });
+
+    window.maximize();
+
+    window.loadURL(url);
+
+    window.webContents.setWindowOpenHandler(({url}) => {
+        if (url.startsWith('https://mail.google.com') ||
+            url.startsWith('https://myaccount.google.com') ||
+            url.startsWith('https://accounts.google.com')) {
+            console.log(`allow ${url}`)
+            createWindow(url);
+            return { action: 'deny' }
+        } else {
+            console.log(`deny ${url}`)
+            shell.openExternal(url)
+                .then(() => {})
+            return { action: 'deny' }
+        }
+    });
+
+    return window;
+}
+
 export default class Main {
     static mainWindow: Electron.BrowserWindow;
     static application: Electron.App;
@@ -15,22 +43,7 @@ export default class Main {
     }
 
     private static onReady() {
-        Main.mainWindow = new Main.BrowserWindow({
-            title: 'Gmail',
-            icon: path.join(Main.application.getAppPath(), 'icons/icon.png')
-        });
-
-        Main.mainWindow.maximize();
-
-        Main.mainWindow.loadURL('https://mail.google.com')
-            .then(() => {});
-
-        Main.mainWindow.webContents.setWindowOpenHandler(({url}) => {
-            shell.openExternal(url)
-                .then(() => {})
-            return { action: 'deny' }
-        })
-
+        Main.mainWindow = createWindow('https://mail.google.com');
         Main.mainWindow.on('closed', Main.onClose);
     }
 
